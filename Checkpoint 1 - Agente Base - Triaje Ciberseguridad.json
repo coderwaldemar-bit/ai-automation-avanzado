@@ -1,0 +1,281 @@
+{
+  "name": "Checkpoint 1 - Agente Base - Triaje Ciberseguridad",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        272,
+        480
+      ],
+      "id": "1119160f-1015-46ea-9807-8e070ae7e008",
+      "name": "01 - Chat Trigger",
+      "webhookId": "267759ed-dade-4923-9068-792658234f61"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "ROL\n\nEres un Agente Corporativo de Triaje de Ciberseguridad. Tu función es analizar reportes iniciales de posibles incidentes de seguridad y determinar su severidad, prioridad y necesidad de escalamiento.\n\nÁMBITO\n\nPuedes analizar exclusivamente información relacionada con accesos sospechosos, phishing, actividad anómala de cuentas, malware, alertas de endpoint, vulnerabilidades, autenticación MFA, credenciales comprometidas y eventos de seguridad reportados por usuarios o equipos técnicos.\n\nNo administras infraestructura ni ejecutas acciones técnicas sobre sistemas productivos.\n\nOBJETIVO\n\nPara cada mensaje recibido debes:\n1. Interpretar el evento reportado.\n2. Extraer únicamente los hechos explícitamente proporcionados.\n3. Clasificar la severidad como BAJA, MEDIA, ALTA o CRÍTICA.\n4. Explicar brevemente los factores que sustentan la clasificación.\n5. Determinar si corresponde escalamiento humano.\n6. Activar la herramienta de escalamiento únicamente cuando se cumplan sus condiciones de uso.\n7. Entregar un resumen estructurado para auditoría.\n\nREGLAS\n\n- No inventes indicadores, IP, usuarios, dispositivos, vulnerabilidades, fechas ni evidencias.\n- Si falta información, indícalo explícitamente.\n- Diferencia hechos de hipótesis.\n- No reformules una sospecha como un hecho confirmado. Si el usuario reporta actividad sospechosa, conserva expresiones como \"posible\", \"aparente\" o \"no reconocida\" salvo que exista confirmación explícita.\n- No afirmes que un incidente está confirmado si la evidencia disponible no lo permite.\n- No ejecutes remediaciones, bloqueos, cambios de contraseña, aislamiento de equipos ni modificaciones de infraestructura.\n- No envíes comunicaciones externas salvo mediante las herramientas expresamente disponibles.\n- No actives herramientas si las condiciones de negocio definidas en su descripción no se cumplen.\n- Utiliza lenguaje profesional, directo y técnico.\n- No utilices giros de lenguaje inclusivo.\n- No continúes iterando si ya existe información suficiente para entregar una conclusión.\n- Si una herramienta falla, informa el fallo y no simules que la acción fue exitosa.\n\nESCALAMIENTO\n\nDebes considerar escalamiento cuando exista al menos una de estas condiciones:\n- severidad ALTA o CRÍTICA;\n- evidencia de acceso no autorizado;\n- sospecha razonable de compromiso de credenciales;\n- malware activo o comportamiento compatible con compromiso;\n- bypass o abuso de MFA;\n- posible impacto sobre información sensible o servicios críticos.\n\nFORMATO DE RESPUESTA\n\nDevuelve siempre:\n\nClasificación:\nSeveridad:\nResumen:\nHechos observados:\nInformación faltante:\nRequiere escalamiento: Sí/No\nHerramienta utilizada: nombre de la herramienta o \"Ninguna\"\nJustificación:\nRecomendación para revisión humana:",
+          "maxIterations": 6,
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        672,
+        416
+      ],
+      "id": "a3f88b6e-c417-44fa-a939-7262eb736df7",
+      "name": "02 - AI Agent - Triaje Ciberseguridad1",
+      "notesInFlow": true,
+      "notes": "Tools Agent / ciclo ReAct. Guardrail financiero: Max Iterations = 6. Return Intermediate Steps activado."
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        560,
+        656
+      ],
+      "id": "8ad89ecc-ba6d-4ea4-a87b-7309a5b21ab1",
+      "name": "OpenAI Chat Model1",
+      "notesInFlow": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "4YRsb7rFlaDM3322",
+          "name": "OpenAI account"
+        }
+      },
+      "notes": "Selecciona tu credential de OpenAI después de importar."
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Utiliza esta herramienta únicamente para escalar un evento de ciberseguridad que, después del análisis, haya sido clasificado con severidad ALTA o CRÍTICA.\n\nTambién puede utilizarse cuando exista evidencia explícita o una sospecha razonablemente sustentada de acceso no autorizado, compromiso de credenciales, malware activo, abuso de MFA o impacto potencial sobre información o servicios críticos.\n\nNo utilices esta herramienta para eventos de severidad BAJA o MEDIA que solo requieran recomendaciones generales, ni cuando la información disponible sea insuficiente para justificar un escalamiento.\n\nAntes de activarla debes haber identificado y documentado la severidad y la razón del escalamiento.\n\nEl correo debe contener severidad, resumen del evento, hechos observados, información faltante, justificación del escalamiento y recomendación para revisión humana.\n\nEl mensaje enviado debe contener únicamente información proporcionada por el usuario o derivada directamente de ella. No inventes usuarios, direcciones IP, dispositivos, indicadores de compromiso ni conclusiones no sustentadas.\n\nSi la herramienta falla, no declares que el correo fue enviado. Informa el error en la respuesta final.",
+        "sendTo": "={{ $env.APPROVER_EMAIL }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('subject', 'Asunto profesional para el escalamiento del incidente de ciberseguridad', 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('message', 'Cuerpo del escalamiento con severidad, resumen, hechos observados, información faltante, justificación y recomendación', 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        656
+      ],
+      "id": "d3868b88-ebab-4b6a-b593-b43a9ba67307",
+      "name": "Gmail Tool - Escalar incidente1",
+      "notesInFlow": true,
+      "webhookId": "86bf2834-c2c2-4f81-9229-66dfa626a4b8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "BWMTJdRCpkfY8ruN",
+          "name": "Gmail account"
+        }
+      },
+      "notes": "TOOL AUTÓNOMA. El AI Agent decide probabilísticamente si debe ejecutarla."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "53fd5351-60dc-5775-9a5e-ed7ad45fb83d",
+              "name": "agent_output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "cfa67d51-a516-5061-a47c-f375e2608d04",
+              "name": "execution_id",
+              "value": "={{ $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "918d9bde-3cb4-54ad-be6c-8af9f9fde1a5",
+              "name": "workflow_name",
+              "value": "={{ $workflow.name }}",
+              "type": "string"
+            },
+            {
+              "id": "6b999f80-3371-56b3-85df-672ed3b9fdc5",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "7f43741f-2d61-532c-8f7b-1d41787f88c7",
+              "name": "tool_audit",
+              "value": "={{\n  ($json.intermediateSteps || []).length\n    ? ($json.intermediateSteps || []).map(step =>\n        `Tool: ${step.action?.tool || 'Desconocida'} | Estado: ${step.observation ? 'Ejecutada' : 'Sin resultado'}`\n      ).join('\\n')\n    : 'Ninguna herramienta utilizada'\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        416
+      ],
+      "id": "57331813-41f0-4640-93fc-68ee5d56b27d",
+      "name": "03 - Preparar Log de Observabilidad1",
+      "notesInFlow": true,
+      "notes": "Bloque determinista. Normaliza la salida del agente y resume el uso de Tools sin exponer trazas internas extensas."
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $env.SLACK_CHANNEL_ID }}",
+          "mode": "id"
+        },
+        "text": "=🤖 *CHECKPOINT AI AGENT - TRIAJE CIBERSEGURIDAD*\n\n*Workflow:* {{ $json.workflow_name }}\n*Execution ID:* {{ $json.execution_id }}\n*Timestamp:* {{ $json.timestamp }}\n\n*Resultado del agente:*\n{{ $json.agent_output }}\n\n*Auditoría de herramientas:*\n{{ $json.tool_audit }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1360,
+        416
+      ],
+      "id": "f381ca24-09ac-406d-9464-4fb92f809746",
+      "name": "04 - Slack - Log de Observabilidad1",
+      "notesInFlow": true,
+      "webhookId": "3dc55307-73b2-43e6-bd05-1afc908a1ff7",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "ybzQKv9AQmdx73eA",
+          "name": "Slack account"
+        }
+      },
+      "notes": "Observabilidad humana: publica resultado, Execution ID, timestamp y auditoría resumida de Tools."
+    },
+    {
+      "parameters": {
+        "content": "## ZONA AGÉNTICA / PROBABILÍSTICA \n\nEl AI Agent decide si usa la Gmail Tool.\n\nGuardrail: máximo 6 iteraciones.",
+        "height": 568,
+        "width": 644,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        448,
+        272
+      ],
+      "id": "81c9ad7f-2bcc-4cdc-b01e-ae8fb4922ce1",
+      "name": "Zona Agéntica - ReAct1"
+    },
+    {
+      "parameters": {
+        "content": "## ZONA DETERMINISTA / OBSERVABILIDAD\n\nDespués del razonamiento, el flujo normaliza el resultado y envía un reporte automático a Slack.",
+        "height": 250,
+        "width": 524,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        272
+      ],
+      "id": "5f947420-6ecc-406f-94aa-474a41a5be1f",
+      "name": "Zona Determinista - Observabilidad1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "01 - Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "02 - AI Agent - Triaje Ciberseguridad1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 - AI Agent - Triaje Ciberseguridad1": {
+      "main": [
+        [
+          {
+            "node": "03 - Preparar Log de Observabilidad1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "02 - AI Agent - Triaje Ciberseguridad1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Tool - Escalar incidente1": {
+      "ai_tool": [
+        [
+          {
+            "node": "02 - AI Agent - Triaje Ciberseguridad1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 - Preparar Log de Observabilidad1": {
+      "main": [
+        [
+          {
+            "node": "04 - Slack - Log de Observabilidad1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "12e7e1f4-1247-4a18-8b34-65d6619543f8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb07b20c3ce8ad78f7a8d4993dfd24999a1867f9106ac37018799b1245d9c3c3"
+  },
+  "nodeGroups": [],
+  "id": "Yc5AtfgBQ7SCXTsg",
+  "tags": []
+}
